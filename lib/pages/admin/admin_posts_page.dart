@@ -12,9 +12,9 @@ import 'posts/post_card.dart';
 // ── Filter enum ───────────────────────────────────────────────────────────────
 
 enum _PostFilter {
-  all,      // All posts
-  liked,    // Posts with 1+ likes (popular/viral)
-  noLikes,  // Posts with 0 likes (new or potential spam)
+  all, // All posts
+  liked, // Posts with 1+ likes (popular/viral)
+  noLikes, // Posts with 0 likes (new or potential spam)
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -85,30 +85,41 @@ class _AdminPostsPageState extends State<AdminPostsPage> {
             decoration: InputDecoration(
               hintText: 'Search posts by content or author…',
               hintStyle: const TextStyle(color: Color(0xFF7D8A9C)),
-              prefixIcon: const Icon(Icons.search_rounded,
-                  color: Color(0xFF7D8A9C)),
+              prefixIcon: const Icon(
+                Icons.search_rounded,
+                color: Color(0xFF7D8A9C),
+              ),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.close_rounded,
-                          color: Color(0xFF7D8A9C), size: 18),
-                      onPressed: () =>
-                          setState(() => _searchQuery = ''),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: Color(0xFF7D8A9C),
+                        size: 18,
+                      ),
+                      onPressed: () => setState(() => _searchQuery = ''),
                     )
                   : null,
               filled: true,
               fillColor: Colors.white,
               border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Color(0xFFD7DCE5))),
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFD7DCE5)),
+              ),
               enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Color(0xFFD7DCE5))),
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFD7DCE5)),
+              ),
               focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(
-                      color: Color(0xFF00B4D8), width: 1.5)),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(
+                  color: Color(0xFF00B4D8),
+                  width: 1.5,
+                ),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
             ),
             onChanged: (v) =>
                 setState(() => _searchQuery = v.trim().toLowerCase()),
@@ -137,26 +148,31 @@ class _AdminPostsPageState extends State<AdminPostsPage> {
           if (_filter != _PostFilter.all) ...[
             const SizedBox(height: 8),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: const Color(0xFF00B4D8).withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                    color: const Color(0xFF00B4D8).withValues(alpha: 0.3)),
+                  color: const Color(0xFF00B4D8).withValues(alpha: 0.3),
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.info_outline_rounded,
-                      size: 13, color: Color(0xFF007B97)),
+                  const Icon(
+                    Icons.info_outline_rounded,
+                    size: 13,
+                    color: Color(0xFF007B97),
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     _filter == _PostFilter.liked
                         ? 'Showing engaged posts — useful for identifying trending content'
                         : 'Showing zero-engagement posts — useful for spam checks',
                     style: const TextStyle(
-                        color: Color(0xFF007B97), fontSize: 11),
+                      color: Color(0xFF007B97),
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),
@@ -174,14 +190,12 @@ class _AdminPostsPageState extends State<AdminPostsPage> {
       selected: selected,
       onSelected: (_) => setState(() => _filter = filter),
       side: BorderSide(
-          color: selected
-              ? const Color(0xFF00B4D8)
-              : const Color(0xFFD7DCE5)),
+        color: selected ? const Color(0xFF00B4D8) : const Color(0xFFD7DCE5),
+      ),
       backgroundColor: Colors.white,
       selectedColor: const Color(0xFFE4F8FF),
       labelStyle: TextStyle(
-        color:
-            selected ? const Color(0xFF007B97) : const Color(0xFF677489),
+        color: selected ? const Color(0xFF007B97) : const Color(0xFF677489),
         fontWeight: FontWeight.w600,
         fontSize: 12,
       ),
@@ -193,13 +207,14 @@ class _AdminPostsPageState extends State<AdminPostsPage> {
   Widget _buildPostList() {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance
-          .collection('User Posts')
+          .collection('UserPosts')
           .orderBy('TimeStamp', descending: true)
           .snapshots(),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting && !snap.hasData) {
           return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF00B4D8)));
+            child: CircularProgressIndicator(color: Color(0xFF00B4D8)),
+          );
         }
 
         var posts = snap.data?.docs ?? const [];
@@ -214,10 +229,8 @@ class _AdminPostsPageState extends State<AdminPostsPage> {
           posts = posts.where((doc) {
             final data = doc.data();
             final msg = _str(data, ['Message', 'Text']).toLowerCase();
-            final email =
-                _str(data, ['UserEmail', 'email']).toLowerCase();
-            return msg.contains(_searchQuery) ||
-                email.contains(_searchQuery);
+            final email = _str(data, ['UserEmail', 'email']).toLowerCase();
+            return msg.contains(_searchQuery) || email.contains(_searchQuery);
           }).toList();
         }
 
@@ -233,16 +246,20 @@ class _AdminPostsPageState extends State<AdminPostsPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.article_outlined,
-                    size: 60,
-                    color: const Color(0xFF7D8A9C).withValues(alpha: 0.5)),
+                Icon(
+                  Icons.article_outlined,
+                  size: 60,
+                  color: const Color(0xFF7D8A9C).withValues(alpha: 0.5),
+                ),
                 const SizedBox(height: 16),
                 Text(
                   _searchQuery.isNotEmpty
                       ? 'No posts matching "$_searchQuery"'
                       : 'No posts in this view',
                   style: const TextStyle(
-                      color: Color(0xFF677489), fontSize: 15),
+                    color: Color(0xFF677489),
+                    fontSize: 15,
+                  ),
                 ),
               ],
             ),
@@ -261,8 +278,11 @@ class _AdminPostsPageState extends State<AdminPostsPage> {
 
   // ── Static helpers ───────────────────────────────────────────────────────────
 
-  static String _str(Map<String, dynamic> data, List<String> keys,
-      {String fallback = ''}) {
+  static String _str(
+    Map<String, dynamic> data,
+    List<String> keys, {
+    String fallback = '',
+  }) {
     for (final key in keys) {
       final v = data[key];
       if (v == null) continue;

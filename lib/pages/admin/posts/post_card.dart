@@ -64,7 +64,8 @@ class _PostCardState extends State<PostCard> {
     final email = _str(['UserEmail', 'email'], fallback: 'unknown');
     final likes = _count(data['Likes']);
     final comments = _count(
-        data['CommentCount'] ?? data['CommentsCount'] ?? data['Comments']);
+      data['CommentCount'] ?? data['CommentsCount'] ?? data['Comments'],
+    );
     final timestamp = data['TimeStamp'];
 
     return Container(
@@ -92,15 +93,19 @@ class _PostCardState extends State<PostCard> {
                   height: 38,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                        colors: [Color(0xFF00B4D8), Color(0xFF0077B6)]),
+                      colors: [Color(0xFF00B4D8), Color(0xFF0077B6)],
+                    ),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Center(
-                    child: Text(_initials(email),
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14)),
+                    child: Text(
+                      _initials(email),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -108,15 +113,22 @@ class _PostCardState extends State<PostCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(email,
-                          style: const TextStyle(
-                              color: Color(0xFF2D3142),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13),
-                          overflow: TextOverflow.ellipsis),
-                      Text(_timeAgo(timestamp),
-                          style: const TextStyle(
-                              color: Color(0xFF7D8A9C), fontSize: 11)),
+                      Text(
+                        email,
+                        style: const TextStyle(
+                          color: Color(0xFF2D3142),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        _timeAgo(timestamp),
+                        style: const TextStyle(
+                          color: Color(0xFF7D8A9C),
+                          fontSize: 11,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -147,7 +159,10 @@ class _PostCardState extends State<PostCard> {
               child: Text(
                 message,
                 style: const TextStyle(
-                    color: Color(0xFF3C4659), fontSize: 13, height: 1.5),
+                  color: Color(0xFF3C4659),
+                  fontSize: 13,
+                  height: 1.5,
+                ),
                 maxLines: _expanded ? null : 3,
                 overflow: _expanded
                     ? TextOverflow.visible
@@ -164,11 +179,17 @@ class _PostCardState extends State<PostCard> {
                 children: [
                   if (likes > 0)
                     _Stat(
-                        Icons.favorite_rounded, '$likes likes', const Color(0xFFFF6B6B)),
+                      Icons.favorite_rounded,
+                      '$likes likes',
+                      const Color(0xFFFF6B6B),
+                    ),
                   if (likes > 0 && comments > 0) const SizedBox(width: 14),
                   if (comments > 0)
-                    _Stat(Icons.comment_rounded, '$comments comments',
-                        const Color(0xFF00B4D8)),
+                    _Stat(
+                      Icons.comment_rounded,
+                      '$comments comments',
+                      const Color(0xFF00B4D8),
+                    ),
                 ],
               ),
             ),
@@ -183,14 +204,20 @@ class _PostCardState extends State<PostCard> {
                   const SizedBox(height: 10),
                   const Row(
                     children: [
-                      Icon(Icons.admin_panel_settings_rounded,
-                          size: 14, color: Color(0xFF677489)),
+                      Icon(
+                        Icons.admin_panel_settings_rounded,
+                        size: 14,
+                        color: Color(0xFF677489),
+                      ),
                       SizedBox(width: 6),
-                      Text('Admin Actions',
-                          style: TextStyle(
-                              color: Color(0xFF677489),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600)),
+                      Text(
+                        'Admin Actions',
+                        style: TextStyle(
+                          color: Color(0xFF677489),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -203,11 +230,13 @@ class _PostCardState extends State<PostCard> {
                           color: const Color(0xFF6C63FF),
                           onTap: () {
                             Clipboard.setData(
-                                ClipboardData(text: widget.doc.id));
+                              ClipboardData(text: widget.doc.id),
+                            );
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                  content: Text('Post ID copied'),
-                                  behavior: SnackBarBehavior.floating),
+                                content: Text('Post ID copied'),
+                                behavior: SnackBarBehavior.floating,
+                              ),
                             );
                           },
                         ),
@@ -233,9 +262,7 @@ class _PostCardState extends State<PostCard> {
               padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  PostDeleteButton(doc: widget.doc, compact: true),
-                ],
+                children: [PostDeleteButton(doc: widget.doc, compact: true)],
               ),
             ),
         ],
@@ -252,42 +279,52 @@ class _PostCardState extends State<PostCard> {
         return StatefulBuilder(
           builder: (ctx, setS) => AlertDialog(
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20)),
-            title: const Text('Flag for Review',
-                style: TextStyle(fontWeight: FontWeight.w700)),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text(
+              'Flag for Review',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                'Spam',
-                'Hate Speech',
-                'Misinformation',
-                'Explicit Content',
-                'Violence',
-                'Other',
-              ]
-                  .map((r) => RadioListTile<String>(
-                        value: r,
-                        groupValue: selected,
-                        onChanged: (v) => setS(() => selected = v!),
-                        title: Text(r,
-                            style: const TextStyle(fontSize: 13)),
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ))
-                  .toList(),
+              children:
+                  [
+                        'Spam',
+                        'Hate Speech',
+                        'Misinformation',
+                        'Explicit Content',
+                        'Violence',
+                        'Other',
+                      ]
+                      .map(
+                        (r) => RadioListTile<String>(
+                          value: r,
+                          groupValue: selected,
+                          onChanged: (v) => setS(() => selected = v!),
+                          title: Text(r, style: const TextStyle(fontSize: 13)),
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      )
+                      .toList(),
             ),
             actions: [
               TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel')),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, selected),
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFB84D),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10))),
-                child: const Text('Flag',
-                    style: TextStyle(color: Colors.white)),
+                  backgroundColor: const Color(0xFFFFB84D),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text(
+                  'Flag',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ),
@@ -297,7 +334,7 @@ class _PostCardState extends State<PostCard> {
 
     if (reason == null || !mounted) return;
 
-    await FirebaseFirestore.instance.collection('Moderated Posts').add({
+    await FirebaseFirestore.instance.collection('ModeratedPosts').add({
       'Message': data['Message'] ?? data['Text'] ?? '',
       'UserEmail': data['UserEmail'] ?? data['email'] ?? '',
       'OriginalPostId': widget.doc.id,
@@ -310,8 +347,9 @@ class _PostCardState extends State<PostCard> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-          content: Text('Post flagged for review'),
-          behavior: SnackBarBehavior.floating),
+        content: Text('Post flagged for review'),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 }
@@ -331,9 +369,14 @@ class _Stat extends StatelessWidget {
       children: [
         Icon(icon, size: 12, color: color),
         const SizedBox(width: 4),
-        Text(label,
-            style: TextStyle(
-                color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+        Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ],
     );
   }
@@ -370,12 +413,15 @@ class PostActionButton extends StatelessWidget {
             Icon(icon, size: 13, color: color),
             const SizedBox(width: 5),
             Flexible(
-              child: Text(label,
-                  style: TextStyle(
-                      color: color,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600),
-                  overflow: TextOverflow.ellipsis),
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -401,10 +447,13 @@ class _PostDeleteButtonState extends State<PostDeleteButton> {
   Widget build(BuildContext context) {
     if (_loading) {
       return const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(
-              strokeWidth: 2, color: Color(0xFFFF6B6B)));
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: Color(0xFFFF6B6B),
+        ),
+      );
     }
 
     if (widget.compact) {
@@ -416,10 +465,14 @@ class _PostDeleteButtonState extends State<PostDeleteButton> {
             color: const Color(0xFFFF6B6B).withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-                color: const Color(0xFFFF6B6B).withValues(alpha: 0.3)),
+              color: const Color(0xFFFF6B6B).withValues(alpha: 0.3),
+            ),
           ),
-          child: const Icon(Icons.delete_rounded,
-              color: Color(0xFFFF6B6B), size: 16),
+          child: const Icon(
+            Icons.delete_rounded,
+            color: Color(0xFFFF6B6B),
+            size: 16,
+          ),
         ),
       );
     }
@@ -432,18 +485,22 @@ class _PostDeleteButtonState extends State<PostDeleteButton> {
           color: const Color(0xFFFF6B6B).withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-              color: const Color(0xFFFF6B6B).withValues(alpha: 0.30)),
+            color: const Color(0xFFFF6B6B).withValues(alpha: 0.30),
+          ),
         ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.delete_rounded, size: 13, color: Color(0xFFFF6B6B)),
             SizedBox(width: 5),
-            Text('Delete',
-                style: TextStyle(
-                    color: Color(0xFFFF6B6B),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600)),
+            Text(
+              'Delete',
+              style: TextStyle(
+                color: Color(0xFFFF6B6B),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),
@@ -463,25 +520,34 @@ class _PostDeleteButtonState extends State<PostDeleteButton> {
           children: [
             Icon(Icons.warning_rounded, color: Color(0xFFFF6B6B)),
             SizedBox(width: 8),
-            Text('Delete post?',
-                style: TextStyle(
-                    color: Color(0xFF2D3142),
-                    fontWeight: FontWeight.w700)),
+            Text(
+              'Delete post?',
+              style: TextStyle(
+                color: Color(0xFF2D3142),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ],
         ),
         content: const Text(
-            'This permanently removes the post and cannot be undone.',
-            style: TextStyle(color: Color(0xFF677489))),
+          'This permanently removes the post and cannot be undone.',
+          style: TextStyle(color: Color(0xFF677489)),
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Color(0xFF7D8A9C)))),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Color(0xFF7D8A9C)),
+            ),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF6B6B),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10))),
+              backgroundColor: const Color(0xFFFF6B6B),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
             onPressed: () async {
               Navigator.pop(ctx);
               final messenger = ScaffoldMessenger.of(this.context);
@@ -493,13 +559,13 @@ class _PostDeleteButtonState extends State<PostDeleteButton> {
                 setState(() => _loading = false);
                 messenger.showSnackBar(
                   const SnackBar(
-                      content: Text('Unable to delete post'),
-                      behavior: SnackBarBehavior.floating),
+                    content: Text('Unable to delete post'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
                 );
               }
             },
-            child: const Text('Delete',
-                style: TextStyle(color: Colors.white)),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

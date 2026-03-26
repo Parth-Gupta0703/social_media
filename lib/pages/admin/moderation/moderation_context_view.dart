@@ -38,7 +38,7 @@ Future<void> showModerationContext(
   try {
     if (postId != null) {
       final snap = await FirebaseFirestore.instance
-          .collection('User Posts')
+          .collection('UserPosts')
           .doc(postId)
           .get();
       if (snap.exists) {
@@ -48,8 +48,7 @@ Future<void> showModerationContext(
       }
     }
     if (commentPath != null && commentPath.isNotEmpty) {
-      final snap =
-          await FirebaseFirestore.instance.doc(commentPath).get();
+      final snap = await FirebaseFirestore.instance.doc(commentPath).get();
       if (snap.exists) {
         final d = snap.data();
         parentCommentText = d?['Text'] as String?;
@@ -91,19 +90,22 @@ Future<void> showModerationContext(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
-                  const Icon(Icons.account_tree_rounded,
-                      color: Color(0xFF6C63FF), size: 18),
+                  const Icon(
+                    Icons.account_tree_rounded,
+                    color: Color(0xFF6C63FF),
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   const Text(
                     'Content Thread Context',
                     style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF2D3142)),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF2D3142),
+                    ),
                   ),
                   const Spacer(),
-                  TypeChip(
-                      text: contentType == 'reply' ? 'Reply' : 'Comment'),
+                  TypeChip(text: contentType == 'reply' ? 'Reply' : 'Comment'),
                 ],
               ),
             ),
@@ -113,8 +115,7 @@ Future<void> showModerationContext(
               child: Text(
                 'Showing the parent post and comment that this '
                 '${contentType == 'reply' ? 'reply' : 'comment'} was made in.',
-                style:
-                    const TextStyle(color: Color(0xFF9CACCF), fontSize: 12),
+                style: const TextStyle(color: Color(0xFF9CACCF), fontSize: 12),
               ),
             ),
             const SizedBox(height: 12),
@@ -148,31 +149,40 @@ Future<void> showModerationContext(
                       color: const Color(0xFFFF6B6B).withValues(alpha: 0.07),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                          color:
-                              const Color(0xFFFF6B6B).withValues(alpha: 0.4)),
+                        color: const Color(0xFFFF6B6B).withValues(alpha: 0.4),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Row(
                           children: [
-                            Icon(Icons.flag_rounded,
-                                color: Color(0xFFFF6B6B), size: 14),
+                            Icon(
+                              Icons.flag_rounded,
+                              color: Color(0xFFFF6B6B),
+                              size: 14,
+                            ),
                             SizedBox(width: 6),
-                            Text('FLAGGED CONTENT',
-                                style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFFFF6B6B),
-                                    letterSpacing: 1)),
+                            Text(
+                              'FLAGGED CONTENT',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFFFF6B6B),
+                                letterSpacing: 1,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Text(flaggedText,
-                            style: const TextStyle(
-                                color: Color(0xFF3C4659),
-                                fontSize: 13,
-                                height: 1.5)),
+                        Text(
+                          flaggedText,
+                          style: const TextStyle(
+                            color: Color(0xFF3C4659),
+                            fontSize: 13,
+                            height: 1.5,
+                          ),
+                        ),
                       ],
                     ),
                   ),

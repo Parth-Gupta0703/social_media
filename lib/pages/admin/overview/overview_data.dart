@@ -56,15 +56,15 @@ Future<TrendData> loadTrendData() async {
   final start = DateTime.now().subtract(const Duration(days: 6));
   final snaps = await Future.wait([
     FirebaseFirestore.instance
-        .collection('User Posts')
+        .collection('UserPosts')
         .where('TimeStamp', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
         .get(),
     FirebaseFirestore.instance
-        .collection('Moderated Posts')
+        .collection('ModeratedPosts')
         .where('TimeStamp', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
         .get(),
     FirebaseFirestore.instance
-        .collection('Moderated Comments')
+        .collection('ModeratedComments')
         .where('TimeStamp', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
         .get(),
   ]);
@@ -86,8 +86,8 @@ Future<TrendData> loadTrendData() async {
 /// Loads risk gauge data: total published posts vs unique flagged posts.
 Future<RiskData> loadRiskData() async {
   final snaps = await Future.wait([
-    FirebaseFirestore.instance.collection('User Posts').get(),
-    FirebaseFirestore.instance.collection('Moderated Posts').get(),
+    FirebaseFirestore.instance.collection('UserPosts').get(),
+    FirebaseFirestore.instance.collection('ModeratedPosts').get(),
   ]);
 
   // Count unique flagged post IDs to avoid double-counting multiple flags per post
@@ -105,35 +105,42 @@ Future<RiskData> loadRiskData() async {
 /// Loads the top 6 contributors by post count.
 Future<List<ContributorStats>> loadTopContributors() async {
   final snaps = await Future.wait([
-    FirebaseFirestore.instance.collection('User Posts').limit(300).get(),
-    FirebaseFirestore.instance.collection('Moderated Posts').limit(300).get(),
+    FirebaseFirestore.instance.collection('UserPosts').limit(300).get(),
+    FirebaseFirestore.instance.collection('ModeratedPosts').limit(300).get(),
   ]);
 
   final totalMap = <String, int>{};
   final flaggedMap = <String, int>{};
 
   for (final doc in snaps[0].docs) {
-    final email =
-        (doc.data()['UserEmail'] ?? '').toString().trim().toLowerCase();
+    final email = (doc.data()['UserEmail'] ?? '')
+        .toString()
+        .trim()
+        .toLowerCase();
     if (!email.contains('@')) continue;
     totalMap[email] = (totalMap[email] ?? 0) + 1;
   }
 
   for (final doc in snaps[1].docs) {
-    final email =
-        (doc.data()['UserEmail'] ?? '').toString().trim().toLowerCase();
+    final email = (doc.data()['UserEmail'] ?? '')
+        .toString()
+        .trim()
+        .toLowerCase();
     if (!email.contains('@')) continue;
     flaggedMap[email] = (flaggedMap[email] ?? 0) + 1;
   }
 
-  final list = totalMap.entries
-      .map((e) => ContributorStats(
-            email: e.key,
-            totalPosts: e.value,
-            flaggedPosts: flaggedMap[e.key] ?? 0,
-          ))
-      .toList()
-    ..sort((a, b) => b.totalPosts.compareTo(a.totalPosts));
+  final list =
+      totalMap.entries
+          .map(
+            (e) => ContributorStats(
+              email: e.key,
+              totalPosts: e.value,
+              flaggedPosts: flaggedMap[e.key] ?? 0,
+            ),
+          )
+          .toList()
+        ..sort((a, b) => b.totalPosts.compareTo(a.totalPosts));
 
   return list.take(6).toList();
 }
@@ -142,17 +149,17 @@ Future<List<ContributorStats>> loadTopContributors() async {
 Future<List<RecentEvent>> loadRecentEvents() async {
   final snaps = await Future.wait([
     FirebaseFirestore.instance
-        .collection('User Posts')
+        .collection('UserPosts')
         .orderBy('TimeStamp', descending: true)
         .limit(5)
         .get(),
     FirebaseFirestore.instance
-        .collection('Moderated Posts')
+        .collection('ModeratedPosts')
         .orderBy('TimeStamp', descending: true)
         .limit(5)
         .get(),
     FirebaseFirestore.instance
-        .collection('Moderated Comments')
+        .collection('ModeratedComments')
         .orderBy('TimeStamp', descending: true)
         .limit(5)
         .get(),
@@ -161,38 +168,47 @@ Future<List<RecentEvent>> loadRecentEvents() async {
   final events = <RecentEvent>[];
 
   for (final doc in snaps[0].docs) {
-    events.add(RecentEvent(
-      icon: Icons.article_rounded,
-      color: const Color(0xFF6C63FF),
-      title: 'New post by ${doc.data()['UserEmail'] ?? 'unknown'}',
-      subtitle: (doc.data()['Message'] ?? '').toString(),
-      ts: doc.data()['TimeStamp'] as Timestamp?,
-    ));
+    events.add(
+      RecentEvent(
+        icon: Icons.article_rounded,
+        color: const Color(0xFF6C63FF),
+        title: 'New post by ${doc.data()['UserEmail'] ?? 'unknown'}',
+        subtitle: (doc.data()['Message'] ?? '').toString(),
+        ts: doc.data()['TimeStamp'] as Timestamp?,
+      ),
+    );
   }
 
   for (final doc in snaps[1].docs) {
-    events.add(RecentEvent(
-      icon: Icons.flag_rounded,
-      color: const Color(0xFFFF6B6B),
-      title: 'Post flagged — ${doc.data()['Reason'] ?? 'unknown reason'}',
-      subtitle:
-          (doc.data()['Message'] ?? doc.data()['Text'] ?? '').toString(),
-      ts: doc.data()['TimeStamp'] as Timestamp?,
-    ));
+    events.add(
+      RecentEvent(
+        icon: Icons.flag_rounded,
+        color: const Color(0xFFFF6B6B),
+        title: 'Post flagged — ${doc.data()['Reason'] ?? 'unknown reason'}',
+        subtitle: (doc.data()['Message'] ?? doc.data()['Text'] ?? '')
+            .toString(),
+        ts: doc.data()['TimeStamp'] as Timestamp?,
+      ),
+    );
   }
 
   for (final doc in snaps[2].docs) {
-    events.add(RecentEvent(
-      icon: Icons.comment_rounded,
-      color: const Color(0xFFFFB84D),
-      title: 'Comment flagged — ${doc.data()['Reason'] ?? 'unknown reason'}',
-      subtitle:
-          (doc.data()['Comment'] ?? doc.data()['Text'] ?? '').toString(),
-      ts: doc.data()['TimeStamp'] as Timestamp?,
-    ));
+    events.add(
+      RecentEvent(
+        icon: Icons.comment_rounded,
+        color: const Color(0xFFFFB84D),
+        title: 'Comment flagged — ${doc.data()['Reason'] ?? 'unknown reason'}',
+        subtitle: (doc.data()['Comment'] ?? doc.data()['Text'] ?? '')
+            .toString(),
+        ts: doc.data()['TimeStamp'] as Timestamp?,
+      ),
+    );
   }
 
-  events.sort((a, b) => (b.ts?.millisecondsSinceEpoch ?? 0)
-      .compareTo(a.ts?.millisecondsSinceEpoch ?? 0));
+  events.sort(
+    (a, b) => (b.ts?.millisecondsSinceEpoch ?? 0).compareTo(
+      a.ts?.millisecondsSinceEpoch ?? 0,
+    ),
+  );
   return events;
 }

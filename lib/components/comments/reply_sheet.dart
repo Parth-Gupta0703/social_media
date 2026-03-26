@@ -1,21 +1,25 @@
+// lib/pages/comments/reply_sheet.dart
+
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:social_media/services/moderation_service.dart';
+import 'package:social_media/services/social_notification_service.dart';
 
-// Reply composer bottom sheet.
 class ReplySheet extends StatefulWidget {
   final DocumentReference commentRef;
   final User user;
   final String postId;
+  final String commentOwnerId;
 
   const ReplySheet({
     super.key,
     required this.commentRef,
     required this.user,
     required this.postId,
+    required this.commentOwnerId,
   });
 
   @override
@@ -23,9 +27,9 @@ class ReplySheet extends StatefulWidget {
 }
 
 class _ReplySheetState extends State<ReplySheet> {
-  // Local controller for the reply field.
   final replyController = TextEditingController();
-  final ModerationService _moderationService = ModerationService();
+  final _moderationService = ModerationService();
+  final _socialNotifService = SocialNotificationService.instance;
   bool _isSubmittingReply = false;
 
   @override
@@ -41,7 +45,6 @@ class _ReplySheetState extends State<ReplySheet> {
     super.dispose();
   }
 
-  // Persist reply then close the sheet.
   Future<void> submitReply() async {
     final text = replyController.text.trim();
     if (text.isEmpty || _isSubmittingReply) return;
@@ -49,10 +52,10 @@ class _ReplySheetState extends State<ReplySheet> {
     setState(() => _isSubmittingReply = true);
 
     try {
-      final moderationResult = await _moderationService.moderatePost(text);
+      final mod = await _moderationService.moderatePost(text);
       if (!mounted) return;
 
-      if (moderationResult.action == 'allow') {
+      if (mod.action == 'allow') {
         await widget.commentRef.collection('Replies').add({
           'UserEmail': widget.user.email,
           'UserId': widget.user.uid,
@@ -61,36 +64,47 @@ class _ReplySheetState extends State<ReplySheet> {
           'Likes': <String>[],
         });
 
+        // Notify the comment owner about the reply.
+        unawaited(
+          _socialNotifService.notifyOnReply(
+            commentOwnerId: widget.commentOwnerId,
+            postId: widget.postId,
+            replyPreview: text,
+          ),
+        );
+
         if (!mounted) return;
         Navigator.pop(context);
         return;
       }
 
-      await FirebaseFirestore.instance.collection('Moderated Comments').add({
+      // Flagged — store for review.
+      // COLLECTION NAME: 'ModeratedComments' (no space).
+      await FirebaseFirestore.instance.collection('ModeratedComments').add({
         'UserEmail': widget.user.email,
         'UserId': widget.user.uid,
         'PostId': widget.postId,
         'CommentPath': widget.commentRef.path,
         'Type': 'reply',
         'Text': text,
-        'Reason': moderationResult.reason,
-        'MatchedCount': moderationResult.matchedCount,
+        'Reason': mod.reason,
+        'MatchedCount': mod.matchedCount,
         'TimeStamp': Timestamp.now(),
       });
 
       if (!mounted) return;
       await showDialog(
         context: context,
-        builder: (dialogContext) => AlertDialog(
+        builder: (ctx) => AlertDialog(
           title: const Text('Reply removed'),
           content: Text(
-            moderationResult.reason.isNotEmpty
-                ? moderationResult.reason
+            mod.reason.isNotEmpty
+                ? mod.reason
                 : 'This reply violated moderation rules.',
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
+              onPressed: () => Navigator.pop(ctx),
               child: const Text('OK'),
             ),
           ],
@@ -105,9 +119,7 @@ class _ReplySheetState extends State<ReplySheet> {
         ),
       );
     } finally {
-      if (mounted) {
-        setState(() => _isSubmittingReply = false);
-      }
+      if (mounted) setState(() => _isSubmittingReply = false);
     }
   }
 
@@ -139,8 +151,9 @@ class _ReplySheetState extends State<ReplySheet> {
               const SizedBox(height: 12),
               TextField(
                 controller: replyController,
+                autofocus: true,
                 decoration: const InputDecoration(
-                  hintText: "Reply...",
+                  hintText: 'Reply...',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),

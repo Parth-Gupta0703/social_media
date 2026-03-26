@@ -1,9 +1,11 @@
+// lib/components/user_post.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:social_media/components/comments/comments_sheet.dart';
+import 'package:social_media/services/social_notification_service.dart';
 import 'package:timeago/timeago.dart' as timeago;
-
-import 'comments/comments_sheet.dart';
 
 class UserPost extends StatefulWidget {
   final QueryDocumentSnapshot post;
@@ -13,8 +15,10 @@ class UserPost extends StatefulWidget {
   State<UserPost> createState() => _UserPostState();
 }
 
-class _UserPostState extends State<UserPost> with SingleTickerProviderStateMixin {
+class _UserPostState extends State<UserPost>
+    with SingleTickerProviderStateMixin {
   final user = FirebaseAuth.instance.currentUser!;
+  final _socialNotifService = SocialNotificationService.instance;
   late AnimationController _likeController;
 
   @override
@@ -32,23 +36,36 @@ class _UserPostState extends State<UserPost> with SingleTickerProviderStateMixin
     super.dispose();
   }
 
+  // ── Like ─────────────────────────────────────────────────────────────────────
+
   void toggleLike() {
     final likes = List<String>.from(widget.post['Likes']);
     final postRef = widget.post.reference;
+    final postOwnerId = widget.post['UserId'] as String;
 
     if (likes.contains(user.uid)) {
-      postRef.update({'Likes': FieldValue.arrayRemove([user.uid])});
+      // Unlike — no notification needed.
+      postRef.update({
+        'Likes': FieldValue.arrayRemove([user.uid]),
+      });
     } else {
-      postRef.update({'Likes': FieldValue.arrayUnion([user.uid])});
+      // Like — update Firestore, play animation, notify post owner.
+      postRef.update({
+        'Likes': FieldValue.arrayUnion([user.uid]),
+      });
       _likeController.forward().then((_) => _likeController.reverse());
-      
       _showHeartParticles();
+
+      // notifyOnLike skips self-likes internally.
+      _socialNotifService.notifyOnLike(
+        postOwnerId: postOwnerId,
+        postId: widget.post.id,
+      );
     }
   }
-  
+
   void _showHeartParticles() {
     if (!mounted) return;
-    
     showDialog(
       context: context,
       barrierColor: Colors.transparent,
@@ -57,29 +74,28 @@ class _UserPostState extends State<UserPost> with SingleTickerProviderStateMixin
         Future.delayed(const Duration(milliseconds: 1000), () {
           if (context.mounted) Navigator.of(context).pop();
         });
-        
         return Center(
           child: TweenAnimationBuilder(
             duration: const Duration(milliseconds: 1000),
             tween: Tween<double>(begin: 0, end: 1),
-            builder: (context, double value, child) {
-              return Transform.translate(
-                offset: Offset(0, -100 * value),
-                child: Opacity(
-                  opacity: 1 - value,
-                  child: const Icon(
-                    Icons.favorite,
-                    color: Color(0xFFFF6B6B),
-                    size: 60,
-                  ),
+            builder: (context, double value, child) => Transform.translate(
+              offset: Offset(0, -100 * value),
+              child: Opacity(
+                opacity: 1 - value,
+                child: const Icon(
+                  Icons.favorite,
+                  color: Color(0xFFFF6B6B),
+                  size: 60,
                 ),
-              );
-            },
+              ),
+            ),
           ),
         );
       },
     );
   }
+
+  // ── Delete ────────────────────────────────────────────────────────────────────
 
   void deletePost(BuildContext context) {
     showDialog(
@@ -99,8 +115,8 @@ class _UserPostState extends State<UserPost> with SingleTickerProviderStateMixin
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Row(
-                    children: const [
+                  content: const Row(
+                    children: [
                       Icon(Icons.check_circle, color: Colors.white),
                       SizedBox(width: 12),
                       Text('Post deleted'),
@@ -124,14 +140,21 @@ class _UserPostState extends State<UserPost> with SingleTickerProviderStateMixin
     );
   }
 
+  // ── Comments ──────────────────────────────────────────────────────────────────
+
   void showComments(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => CommentsSheet(postId: widget.post.id),
+      builder: (_) => CommentsSheet(
+        postId: widget.post.id,
+        postOwnerId: widget.post['UserId'] as String,
+      ),
     );
   }
+
+  // ── Build ─────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -158,12 +181,13 @@ class _UserPostState extends State<UserPost> with SingleTickerProviderStateMixin
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Header ───────────────────────────────────────────────────────
               Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
                         colors: [Color(0xFFFFB6C1), Color(0xFFFFDAB9)],
                       ),
                       shape: BoxShape.circle,
@@ -242,7 +266,7 @@ class _UserPostState extends State<UserPost> with SingleTickerProviderStateMixin
 
               const SizedBox(height: 16),
 
-
+              // ── Content ──────────────────────────────────────────────────────
               Text(
                 widget.post['Message'],
                 style: const TextStyle(
@@ -253,16 +277,13 @@ class _UserPostState extends State<UserPost> with SingleTickerProviderStateMixin
               ),
 
               const SizedBox(height: 16),
-
-              Container(
-                height: 1,
-                color: Colors.grey[200],
-              ),
-
+              Container(height: 1, color: Colors.grey[200]),
               const SizedBox(height: 12),
 
+              // ── Actions ──────────────────────────────────────────────────────
               Row(
                 children: [
+                  // Like button
                   InkWell(
                     onTap: toggleLike,
                     borderRadius: BorderRadius.circular(12),
@@ -273,9 +294,11 @@ class _UserPostState extends State<UserPost> with SingleTickerProviderStateMixin
                       ),
                       decoration: BoxDecoration(
                         color: isLiked
-                            ? const Color(0x1AFF6B6B) 
+                            ? const Color(0x1AFF6B6B)
                             : Colors.grey[100],
-                        borderRadius: const BorderRadius.all(Radius.circular(12)),
+                        borderRadius: const BorderRadius.all(
+                          Radius.circular(12),
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -311,9 +334,10 @@ class _UserPostState extends State<UserPost> with SingleTickerProviderStateMixin
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(width: 12),
-                  
+
+                  // Comment button
                   InkWell(
                     onTap: () => showComments(context),
                     borderRadius: BorderRadius.circular(12),
@@ -323,31 +347,30 @@ class _UserPostState extends State<UserPost> with SingleTickerProviderStateMixin
                         vertical: 10,
                       ),
                       decoration: const BoxDecoration(
-                        color: Color(0x1AFFB6C1), 
+                        color: Color(0x1AFFB6C1),
                         borderRadius: BorderRadius.all(Radius.circular(12)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.comment_outlined,
-                            color: const Color(0xFFFFB6C1),
+                            color: Color(0xFFFFB6C1),
                             size: 20,
                           ),
                           const SizedBox(width: 8),
                           StreamBuilder(
+                            // COLLECTION NAME: 'UserPosts' (no space).
                             stream: FirebaseFirestore.instance
-                                .collection('User Posts')
+                                .collection('UserPosts')
                                 .doc(widget.post.id)
                                 .collection('Comments')
                                 .snapshots(),
                             builder: (context, snapshot) {
-                              int count = snapshot.hasData
+                              final count = snapshot.hasData
                                   ? snapshot.data!.docs.length
                                   : 0;
-                              if (count == 0) {
-                                return const SizedBox.shrink();
-                              }
+                              if (count == 0) return const SizedBox.shrink();
                               return Text(
                                 count.toString(),
                                 style: const TextStyle(

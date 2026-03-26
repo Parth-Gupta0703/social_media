@@ -24,11 +24,11 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     _userPostsStream = FirebaseFirestore.instance
-        .collection('User Posts')
+        .collection('UserPosts')
         .where('UserId', isEqualTo: widget.user.uid)
         .snapshots();
     _moderatedPostsStream = FirebaseFirestore.instance
-        .collection('Moderated Posts')
+        .collection('ModeratedPosts')
         .where('UserId', isEqualTo: widget.user.uid)
         .snapshots();
   }
@@ -160,7 +160,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Moderated Posts',
+                        'ModeratedPosts',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,

@@ -142,12 +142,12 @@ Future<void> showUserDetailsSheet(
   try {
     final results = await Future.wait([
       FirebaseFirestore.instance
-          .collection('User Posts')
+          .collection('UserPosts')
           .where('UserEmail', isEqualTo: email)
           .count()
           .get(),
       FirebaseFirestore.instance
-          .collection('Moderated Posts')
+          .collection('ModeratedPosts')
           .where('UserEmail', isEqualTo: email)
           .count()
           .get(),
