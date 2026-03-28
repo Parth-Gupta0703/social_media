@@ -46,6 +46,7 @@ class RateLimitService {
   }
 
   /// Returns seconds remaining until next post is allowed, or 0 if ready now.
+  /// Used by SpamService to show accurate wait time in the snackbar.
   int secondsUntilNextAllowed() {
     if (_timestamps.isEmpty) return 0;
     final elapsed = DateTime.now().difference(_timestamps.last).inSeconds;

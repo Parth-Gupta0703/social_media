@@ -9,6 +9,7 @@ import 'package:social_media/components/user_post.dart';
 import 'package:social_media/services/moderation_service.dart';
 import 'package:social_media/services/rate_limit_service.dart';
 import 'package:social_media/services/social_notification_service.dart';
+import 'package:social_media/services/spam_service.dart';
 
 import 'create_post_sheet.dart';
 import 'profile_page.dart';
@@ -27,12 +28,10 @@ class _HomePageState extends State<HomePage>
   final _moderationService = ModerationService();
   final _rateLimitService = RateLimitService.instance;
   final _socialNotifService = SocialNotificationService.instance;
+  final _spamService = SpamService.instance;
 
   late AnimationController _fabController;
   bool _isSubmittingPost = false;
-
-  Timer? _cooldownTimer;
-  int _cooldownSeconds = 0;
 
   // ── Lifecycle ────────────────────────────────────────────────────────────────
 
@@ -44,12 +43,11 @@ class _HomePageState extends State<HomePage>
       vsync: this,
     );
     unawaited(_moderationService.startWarmUpSequence());
-    _socialNotifService.startListening(); // Start inbox listener for this user.
+    _socialNotifService.startListening();
   }
 
   @override
   void dispose() {
-    _cooldownTimer?.cancel();
     _socialNotifService.stopListening();
     _moderationService.dispose();
     _fabController.dispose();
@@ -57,21 +55,31 @@ class _HomePageState extends State<HomePage>
     super.dispose();
   }
 
-  // ── Cooldown timer ───────────────────────────────────────────────────────────
+  // ── Rate limit helper ────────────────────────────────────────────────────────
 
-  void _startCooldownTimer() {
-    _cooldownTimer?.cancel();
-    _cooldownSeconds = _rateLimitService.secondsUntilNextAllowed();
-    if (_cooldownSeconds <= 0) return;
+  /// Returns true if the user is currently rate-limited.
+  /// Side effects: logs spam to Firestore + shows snackbar.
+  /// No setState, no timer — zero unnecessary rebuilds.
+  Future<bool> _isRateLimited() async {
+    final rl = _rateLimitService.canCreatePost();
+    if (rl.allowed) return false;
 
-    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      setState(() => _cooldownSeconds--);
-      if (_cooldownSeconds <= 0) timer.cancel();
-    });
+    // Log violation — fire and forget, never blocks UI.
+    unawaited(
+      _spamService.logRateLimitViolation(
+        userId: _user.uid,
+        email: _user.email ?? '',
+      ),
+    );
+
+    // Static message — shows remaining wait time, no countdown.
+    final wait = _rateLimitService.secondsUntilNextAllowed();
+    _showErrorSnackBar(
+      wait > 0
+          ? 'Slow down! Try again in ${wait}s.'
+          : (rl.reason ?? 'Please wait before posting again.'),
+    );
+    return true;
   }
 
   // ── Post submission ──────────────────────────────────────────────────────────
@@ -80,13 +88,8 @@ class _HomePageState extends State<HomePage>
     final postText = _textController.text.trim();
     if (postText.isEmpty || _isSubmittingPost) return;
 
-    // Layer 1 — rate limit check (instant, no network).
-    final rl = _rateLimitService.canCreatePost();
-    if (!rl.allowed) {
-      _startCooldownTimer();
-      _showErrorSnackBar(rl.reason ?? 'Please wait before posting again.');
-      return;
-    }
+    // Layer 1 — rate limit (also logs spam if blocked).
+    if (await _isRateLimited()) return;
 
     setState(() => _isSubmittingPost = true);
 
@@ -97,7 +100,6 @@ class _HomePageState extends State<HomePage>
 
       if (mod.action == 'allow') {
         // Layer 3 — Firestore write.
-        // COLLECTION NAME: 'UserPosts' (no space — required for Firestore rules).
         final docRef = await FirebaseFirestore.instance
             .collection('UserPosts')
             .add({
@@ -110,7 +112,6 @@ class _HomePageState extends State<HomePage>
 
         _rateLimitService.recordPost();
 
-        // Notify all other users about the new post.
         unawaited(
           _socialNotifService.notifyAllOnNewPost(
             postId: docRef.id,
@@ -130,8 +131,7 @@ class _HomePageState extends State<HomePage>
         return;
       }
 
-      // Flagged by moderation — store for review.
-      // COLLECTION NAME: 'ModeratedPosts' (no space).
+      // Flagged by moderation.
       await FirebaseFirestore.instance.collection('ModeratedPosts').add({
         'UserEmail': _user.email,
         'UserId': _user.uid,
@@ -169,13 +169,11 @@ class _HomePageState extends State<HomePage>
 
   // ── FAB ──────────────────────────────────────────────────────────────────────
 
-  void _showCreatePostSheet() {
-    final rl = _rateLimitService.canCreatePost();
-    if (!rl.allowed) {
-      _startCooldownTimer();
-      _showErrorSnackBar(rl.reason ?? 'Please wait before posting again.');
-      return;
-    }
+  Future<void> _showCreatePostSheet() async {
+    // Rate limit check before even opening the sheet.
+    if (await _isRateLimited()) return;
+    if (!mounted) return;
+
     CreatePostSheet.show(
       context,
       controller: _textController,
@@ -240,7 +238,6 @@ class _HomePageState extends State<HomePage>
         ),
         child: SafeArea(
           child: StreamBuilder(
-            // COLLECTION NAME: 'UserPosts' (no space).
             stream: FirebaseFirestore.instance
                 .collection('UserPosts')
                 .orderBy('TimeStamp', descending: true)
@@ -309,18 +306,14 @@ class _HomePageState extends State<HomePage>
           ),
         ),
       ),
+
+      // Clean FAB — no timer, no countdown, no periodic setState.
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showCreatePostSheet,
-        backgroundColor: _cooldownSeconds > 0
-            ? const Color(0xFFB4A7D6).withOpacity(0.55)
-            : const Color(0xFFB4A7D6),
+        backgroundColor: const Color(0xFFB4A7D6),
         elevation: 4,
-        icon: _cooldownSeconds > 0
-            ? const Icon(Icons.timer_outlined)
-            : const Icon(Icons.add),
-        label: Text(
-          _cooldownSeconds > 0 ? 'Wait ${_cooldownSeconds}s' : 'Post',
-        ),
+        icon: const Icon(Icons.add),
+        label: const Text('Post'),
       ),
     );
   }
@@ -351,14 +344,14 @@ class _HomePageState extends State<HomePage>
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.timer_outlined, color: Colors.white, size: 18),
+            const Icon(Icons.block, color: Colors.white, size: 18),
             const SizedBox(width: 10),
             Expanded(child: Text(message)),
           ],
         ),
         backgroundColor: const Color(0xFFFF6B6B),
         behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 4),
+        duration: const Duration(seconds: 3),
       ),
     );
   }

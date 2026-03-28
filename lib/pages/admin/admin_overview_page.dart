@@ -36,7 +36,7 @@ class _AdminOverviewPageState extends State<AdminOverviewPage> {
         .snapshots();
     _spamStream = FirebaseFirestore.instance
         .collection('spam_reports')
-        .where('status', isEqualTo: 'pending')
+        .where('status', whereIn: ['pending', 'high_risk'])
         .snapshots();
   }
 
