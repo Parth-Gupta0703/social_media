@@ -338,13 +338,7 @@ class _AdminUsersPageState extends State<AdminUsersPage>
             'bannedAt': Timestamp.now(),
             'bannedBy': _myEmail,
           });
-          await queueEmail(
-            user.email,
-            'Your SafeSpot account has been suspended',
-            'Your account was suspended.\nReason: ${reason.trim()}\n\nIf you believe this is a mistake, please contact support.',
-            fromAdmin: _myEmail,
-          );
-          snack('🚫 User banned and notification queued');
+          snack('🚫 User banned');
         } catch (e) {
           snack('Error banning user: $e');
         }
@@ -365,12 +359,6 @@ class _AdminUsersPageState extends State<AdminUsersPage>
             'bannedAt': FieldValue.delete(),
             'bannedBy': FieldValue.delete(),
           });
-          await queueEmail(
-            user.email,
-            'Your SafeSpot account has been reactivated',
-            'Your account suspension has been lifted. Welcome back!',
-            fromAdmin: _myEmail,
-          );
           snack('✅ User unbanned');
         } catch (e) {
           snack('Error unbanning user: $e');
