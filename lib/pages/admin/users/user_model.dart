@@ -9,7 +9,6 @@ enum UserAction {
   demoteFromAdmin,
   banUser,
   unbanUser,
-  changeUsername,
   removeUserData,
 }
 

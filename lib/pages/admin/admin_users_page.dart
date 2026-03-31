@@ -365,47 +365,6 @@ class _AdminUsersPageState extends State<AdminUsersPage>
         }
         return;
 
-      case UserAction.changeUsername:
-        if (user.ref == null) return;
-
-        final reason = await showUserTextInputDialog(
-          context,
-          title: 'Request Username Change',
-          hint: 'Why should this user change their username?',
-        );
-
-        if (!mounted) return;
-        if (reason == null || reason.trim().isEmpty) return;
-
-        final overlayCtx = nav?.overlay?.context;
-        if (overlayCtx == null) return;
-
-        final confirmed = await showUserConfirmDialog(
-          overlayCtx,
-          title: 'Send Username Change Request?',
-          message: 'An email will be sent to ${user.email}.',
-        );
-        if (!confirmed) return;
-
-        try {
-          await user.ref!.update({
-            'usernameChangeRequested': true,
-            'usernameChangeReason': reason.trim(),
-            'usernameChangeRequestedAt': Timestamp.now(),
-            'usernameChangeRequestedBy': _myEmail,
-          });
-          await queueEmail(
-            user.email,
-            'Action required: Update your SafeSpot username',
-            'An admin has requested you change your username.\nReason: ${reason.trim()}',
-            fromAdmin: _myEmail,
-          );
-          snack('Username change request sent');
-        } catch (e) {
-          snack('Error: $e');
-        }
-        return;
-
       case UserAction.removeUserData:
         final confirmed = await showUserConfirmDialog(
           context,

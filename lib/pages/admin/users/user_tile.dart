@@ -215,15 +215,6 @@ class UserTile extends StatelessWidget {
         }
 
         items.add(const PopupMenuItem(
-          value: UserAction.changeUsername,
-          child: Row(children: [
-            Icon(Icons.edit_rounded, size: 16, color: Color(0xFF677489)),
-            SizedBox(width: 8),
-            Text('Request username change'),
-          ]),
-        ));
-
-        items.add(const PopupMenuItem(
           value: UserAction.removeUserData,
           child: Row(children: [
             Icon(Icons.delete_forever_rounded,
