@@ -8,17 +8,31 @@ class ModerationResult {
     required this.action,
     required this.reason,
     required this.matchedCount,
+    this.decision,
+    this.policy,
   });
 
   final String action;
   final String reason;
   final int matchedCount;
+  final String? decision;
+  final String? policy;
 
   factory ModerationResult.fromJson(Map<String, dynamic> json) {
+    final rawDecision = (json['DECISION'] ?? json['action'] ?? '').toString();
+
+    String mappedAction = rawDecision;
+    if (rawDecision == 'SAFE') mappedAction = 'allow';
+    if (rawDecision == 'VIOLATION') mappedAction = 'takedown';
+
     return ModerationResult(
-      action: (json['action'] ?? '').toString(),
-      reason: (json['reason'] ?? '').toString(),
-      matchedCount: _parseMatchedCount(json['matched_count']),
+      action: mappedAction,
+      decision: rawDecision,
+      reason: (json['REASON'] ?? json['reason'] ?? '').toString(),
+      policy: (json['POLICY'] ?? '').toString(),
+      matchedCount: _parseMatchedCount(
+        json['MATCHED COUNT'] ?? json['matched_count'],
+      ),
     );
   }
 
@@ -32,7 +46,8 @@ class ModerationResult {
 class ModerationService {
   ModerationService({http.Client? client}) : _client = client ?? http.Client();
 
-  static const String _baseUrl = 'https://safespot-backend-b68n.onrender.com';
+  static const String _baseUrl =
+      'https://speeds-conjunction-frequency-incurred.trycloudflare.com';
 
   final http.Client _client;
   Timer? _warmUpTimer;
@@ -62,13 +77,20 @@ class ModerationService {
     _warmUpTimer = null;
   }
 
-  Future<ModerationResult> moderatePost(String text) async {
+  Future<ModerationResult> moderatePost(String text, {String? context}) async {
     try {
+      final Map<String, dynamic> requestBody = {'text': text};
+      if (context != null && context.trim().isNotEmpty) {
+        requestBody['context'] = context;
+      } else {
+        requestBody['context'] = "context";
+      }
+
       final response = await _client
           .post(
             Uri.parse('$_baseUrl/api/moderate'),
             headers: const {'Content-Type': 'application/json'},
-            body: jsonEncode({'text': text}),
+            body: jsonEncode(requestBody),
           )
           .timeout(const Duration(seconds: 15));
 

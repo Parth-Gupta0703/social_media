@@ -13,6 +13,7 @@ class ReplySheet extends StatefulWidget {
   final User user;
   final String postId;
   final String commentOwnerId;
+  final String? postText;
 
   const ReplySheet({
     super.key,
@@ -20,6 +21,7 @@ class ReplySheet extends StatefulWidget {
     required this.user,
     required this.postId,
     required this.commentOwnerId,
+    this.postText,
   });
 
   @override
@@ -52,7 +54,10 @@ class _ReplySheetState extends State<ReplySheet> {
     setState(() => _isSubmittingReply = true);
 
     try {
-      final mod = await _moderationService.moderatePost(text);
+      final mod = await _moderationService.moderatePost(
+        text,
+        context: widget.postText,
+      );
       if (!mounted) return;
 
       if (mod.action == 'allow') {

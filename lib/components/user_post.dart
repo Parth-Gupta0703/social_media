@@ -150,6 +150,7 @@ class _UserPostState extends State<UserPost>
       builder: (_) => CommentsSheet(
         postId: widget.post.id,
         postOwnerId: widget.post['UserId'] as String,
+        postText: widget.post['Message'] as String?,
       ),
     );
   }

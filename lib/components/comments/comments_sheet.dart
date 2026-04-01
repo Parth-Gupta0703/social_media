@@ -14,11 +14,13 @@ import 'reply_sheet.dart';
 class CommentsSheet extends StatefulWidget {
   final String postId;
   final String postOwnerId;
+  final String? postText;
 
   const CommentsSheet({
     super.key,
     required this.postId,
     required this.postOwnerId,
+    this.postText,
   });
 
   @override
@@ -54,7 +56,10 @@ class _CommentsSheetState extends State<CommentsSheet> {
     setState(() => _isSubmittingComment = true);
 
     try {
-      final mod = await _moderationService.moderatePost(text);
+      final mod = await _moderationService.moderatePost(
+        text,
+        context: widget.postText,
+      );
       if (!mounted) return;
 
       if (mod.action == 'allow') {
@@ -225,6 +230,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
         user: user,
         postId: widget.postId,
         commentOwnerId: commentOwnerId,
+        postText: widget.postText,
       ),
     );
   }
